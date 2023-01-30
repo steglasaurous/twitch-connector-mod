@@ -62,7 +62,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TwitchConnection.cs" />
     <Compile Include="TwitchIRC.cs" />
     <Compile Include="TwitchConnectorMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
