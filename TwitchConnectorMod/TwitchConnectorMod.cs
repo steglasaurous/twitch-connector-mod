@@ -9,13 +9,12 @@ namespace TwitchConnectorMod
 {
     public class TwitchConnectorMod : MelonMod
     {
+        internal static TwitchIRC IRC = new TwitchIRC();
 
-        private TwitchIRC IRC;
         private MelonPreferences_Category twitchConnectorPrefs;
         private MelonPreferences_Entry<string> oauthToken;
         private MelonPreferences_Entry<string> channel;
         private MelonPreferences_Entry<string> username;
-
         public override void OnInitializeMelon()
         {
             twitchConnectorPrefs = MelonPreferences.CreateCategory("TwitchConnector");
@@ -51,12 +50,28 @@ namespace TwitchConnectorMod
             }
 
             Melon<TwitchConnectorMod>.Logger.Msg("Starting Connection");
-            IRC = new TwitchIRC();
             IRC.oauth = oauthToken.Value;
             IRC.channelName = channel.Value;
             IRC.nickName = username.Value;
-            IRC.MessageReceived += OnChatMsgReceived;
+
+            AddChatMsgReceivedEventHandler(OnChatMsgReceived);
             IRC.Enable();
+        }
+
+        public static void SendMessage(string message)
+        {
+            if (IRC != null)
+            {
+                IRC.SendMsg(message);
+            }
+        }
+
+        public static void AddChatMsgReceivedEventHandler(TwitchIRC.MessageReceivedEventHandler eventHandler)
+        {
+            if (IRC != null)
+            {
+                IRC.MessageReceived += eventHandler;
+            }
         }
 
         private void OnChatMsgReceived(Object sender, TwitchIRC.MessageEventArgs eventArgs)

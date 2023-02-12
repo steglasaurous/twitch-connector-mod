@@ -15,12 +15,15 @@ namespace TwitchConnectorMod
         private string server = "irc.twitch.tv";
         private int port = 6667;
 
-        // Make a EventArgs class that gives a nice object with username and message
         public class MessageEventArgs : EventArgs
         {
             public string username;
             public string message;
             public string channel;
+            /**
+             * Contains the complete raw message as sent by twitch
+             */
+            public string rawMessage;
         }
         
         public delegate void MessageReceivedEventHandler(object sender, TwitchIRC.MessageEventArgs e);
@@ -79,7 +82,8 @@ namespace TwitchConnectorMod
                     eventArgs.username = messageMatches[0].Groups["username"].Value;
                     eventArgs.channel = messageMatches[0].Groups["channel"].Value;
                     eventArgs.message = messageMatches[0].Groups["message"].Value;
-                    
+                    eventArgs.rawMessage = buffer;
+
                     if (handler != null)
                     {
                         handler(this, eventArgs);
