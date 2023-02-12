@@ -41,7 +41,7 @@ namespace TwitchConnectorMod
             sock.Connect(server, port);
             if (!sock.Connected)
             {
-                Melon<TwitchConnectorMod>.Logger.Msg("Failed to connect!");
+                Melon<TwitchConnectorMod>.Logger.Msg("Failed to connect to Twitch - network error");
                 return;
             }
             
@@ -68,10 +68,7 @@ namespace TwitchConnectorMod
                     continue;
 
                 buffer = input.ReadLine();
-                // FIXME: Debugging - remove
-                //Melon<TwitchConnectorMod>.Logger.Msg("RAW: " + buffer);
                 
-                //was message?
                 if (buffer.Contains("PRIVMSG #"))
                 {
                     MessageReceivedEventHandler handler = MessageReceived;
@@ -100,6 +97,7 @@ namespace TwitchConnectorMod
                 if (buffer.Split(' ')[1] == "001")
                 {
                     SendCommand("JOIN #" + channelName);
+                    Melon<TwitchConnectorMod>.Logger.Msg("Twitch connected");
                 }
             }
         }
