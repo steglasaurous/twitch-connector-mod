@@ -12,7 +12,7 @@ This requires MelonLoader 0.5.3 or later be installed on your Audica installatio
 
 ## Installation
 
-1. Download the latest TwitchConnectorMod.dll from the releases section of this repository and drop it into your `Mods` folder in your Audica installation folder.
+1. Download the latest TwitchConnectorMod.zip from the releases section of this repository and unzip it into your  Audica installation folder.
 
 2. In your Audica installation folder, edit the file `UserData\MelonPreferences.cfg` with a text editor (notepad will work) and add the following at the end:
 
