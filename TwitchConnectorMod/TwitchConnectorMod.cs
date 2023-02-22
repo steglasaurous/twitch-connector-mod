@@ -15,6 +15,9 @@ namespace TwitchConnectorMod
         private MelonPreferences_Entry<string> oauthToken;
         private MelonPreferences_Entry<string> channel;
         private MelonPreferences_Entry<string> username;
+        private MelonPreferences_Entry<bool> logTwitchMessages;
+        private MelonPreferences_Entry<bool> logRawTwitchMessages;
+
         public override void OnInitializeMelon()
         {
             twitchConnectorPrefs = MelonPreferences.CreateCategory("TwitchConnector");
@@ -29,8 +32,12 @@ namespace TwitchConnectorMod
             channel = twitchConnectorPrefs.CreateEntry<string>("Channel", "");
             channel.Comment = "The twitch channel to join - typically the same as your username";
 
+            logTwitchMessages = twitchConnectorPrefs.CreateEntry<bool>("LogTwitchMessages", false);
+            logTwitchMessages.Comment = "If set to true, all received twitch messages are written to the console log.";
 
-            // Check for an oauth token.  If we don't have one, open up a web browser to go get one. 
+            logRawTwitchMessages = twitchConnectorPrefs.CreateEntry<bool>("LogRawTwitchMessages", false);
+            logRawTwitchMessages.Comment = "If set to true, all raw received twitch messages are written to the console log.";
+
             if (oauthToken.Value == "")
             {
                 LoggerInstance.Msg("Twitch OAuth token not present, not connecting to twitch. (Add to MelonPreferences.cfg)");
@@ -76,7 +83,19 @@ namespace TwitchConnectorMod
 
         private void OnChatMsgReceived(Object sender, TwitchIRC.MessageEventArgs eventArgs)
         {
-            Melon<TwitchConnectorMod>.Logger.Msg("MESSAGE: " + eventArgs.username + "::" + eventArgs.message);
+            if (logTwitchMessages.Value == true) {
+                Melon<TwitchConnectorMod>.Logger.Msg($"Twitch Message: #${eventArgs.channel} ${eventArgs.username}: ${eventArgs.message}");
+            }
+
+            if (logRawTwitchMessages.Value == true)
+            {
+                Melon<TwitchConnectorMod>.Logger.Msg($"Raw Twitch Message: ${eventArgs.rawMessage}");
+            }
+        }
+
+        public override void OnUpdate()
+        {
+            IRC.Update();
         }
     }
 }

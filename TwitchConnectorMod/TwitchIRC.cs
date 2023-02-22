@@ -32,8 +32,7 @@ namespace TwitchConnectorMod
         private string buffer = string.Empty;
         private bool stopThreads = false;
         private Queue<string> commandQueue = new Queue<string>();
-        // FIXME: If I don't need this, then remove it. 
-        //private List<string> recievedMsgs = new List<string>();
+        private List<string> receivedMsgs = new List<string>();
         private System.Threading.Thread inProc, outProc;
         private void StartIRC()
         {
@@ -71,19 +70,9 @@ namespace TwitchConnectorMod
                 
                 if (buffer.Contains("PRIVMSG #"))
                 {
-                    MessageReceivedEventHandler handler = MessageReceived;
-                    MessageEventArgs eventArgs = new MessageEventArgs();
-                    Regex messageRegex = new Regex(@"\:(?<username>\w+)!\w+\@[\w.]+ (?<command>[A-Z]+) #(?<channel>\w+) :(?<message>[\S\s]*)");
-                    MatchCollection messageMatches = messageRegex.Matches(buffer);
-
-                    eventArgs.username = messageMatches[0].Groups["username"].Value;
-                    eventArgs.channel = messageMatches[0].Groups["channel"].Value;
-                    eventArgs.message = messageMatches[0].Groups["message"].Value;
-                    eventArgs.rawMessage = buffer;
-
-                    if (handler != null)
+                    lock (receivedMsgs)
                     {
-                        handler(this, eventArgs);
+                        this.receivedMsgs.Add(buffer);
                     }
                 }
 
@@ -116,6 +105,7 @@ namespace TwitchConnectorMod
                         if (stopWatch.ElapsedMilliseconds > 1750)
                         {
                             //send msg.
+                            // Melon<TwitchConnectorMod>.Logger.Msg($"Twitch SEND: " + commandQueue.Peek());
                             output.WriteLine(commandQueue.Peek());
                             output.Flush();
                             //remove msg from queue.
@@ -153,6 +143,34 @@ namespace TwitchConnectorMod
         {
             stopThreads = true;
             // FIXME: Need something to disconnect from IRC here?
+        }
+
+        public void Update()
+        {
+            lock (receivedMsgs)
+            {
+                if (this.receivedMsgs.Count > 0)
+                {
+                    for (int i = 0; i < receivedMsgs.Count; i++)
+                    {
+                        MessageReceivedEventHandler handler = MessageReceived;
+                        MessageEventArgs eventArgs = new MessageEventArgs();
+                        Regex messageRegex = new Regex(@"\:(?<username>\w+)!\w+\@[\w.]+ (?<command>[A-Z]+) #(?<channel>\w+) :(?<message>[\S\s]*)");
+                        MatchCollection messageMatches = messageRegex.Matches(receivedMsgs[i]);
+
+                        eventArgs.username = messageMatches[0].Groups["username"].Value;
+                        eventArgs.channel = messageMatches[0].Groups["channel"].Value;
+                        eventArgs.message = messageMatches[0].Groups["message"].Value;
+                        eventArgs.rawMessage = receivedMsgs[i];
+
+                        if (handler != null)
+                        {
+                            handler(this, eventArgs);
+                        }
+                    }
+                    receivedMsgs.Clear();
+                }
+            }
         }
     }
 }
