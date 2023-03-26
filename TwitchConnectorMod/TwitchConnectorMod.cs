@@ -62,6 +62,10 @@ namespace TwitchConnectorMod
             IRC.nickName = username.Value;
 
             AddChatMsgReceivedEventHandler(OnChatMsgReceived);
+            if (logRawTwitchMessages.Value == true)
+            {
+                IRC.logRawMessages = true;
+            }
             IRC.Enable();
         }
 
@@ -81,15 +85,10 @@ namespace TwitchConnectorMod
             }
         }
 
-        private void OnChatMsgReceived(Object sender, TwitchIRC.MessageEventArgs eventArgs)
+        private void OnChatMsgReceived(Object sender, ParsedTwitchMessage eventArgs)
         {
             if (logTwitchMessages.Value == true) {
-                Melon<TwitchConnectorMod>.Logger.Msg($"Twitch Message: #${eventArgs.channel} ${eventArgs.username}: ${eventArgs.message}");
-            }
-
-            if (logRawTwitchMessages.Value == true)
-            {
-                Melon<TwitchConnectorMod>.Logger.Msg($"Raw Twitch Message: ${eventArgs.rawMessage}");
+                Melon<TwitchConnectorMod>.Logger.Msg($"Twitch Message: {eventArgs.Message}");
             }
         }
 

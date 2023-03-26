@@ -1,8 +1,5 @@
 ﻿using MelonLoader;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace TwitchConnectorMod
 {
@@ -14,19 +11,8 @@ namespace TwitchConnectorMod
         public string channelName;
         private string server = "irc.twitch.tv";
         private int port = 6667;
-
-        public class MessageEventArgs : EventArgs
-        {
-            public string username;
-            public string message;
-            public string channel;
-            /**
-             * Contains the complete raw message as sent by twitch
-             */
-            public string rawMessage;
-        }
-        
-        public delegate void MessageReceivedEventHandler(object sender, TwitchIRC.MessageEventArgs e);
+        public bool logRawMessages = false;
+        public delegate void MessageReceivedEventHandler(object sender, ParsedTwitchMessage e);
         public event MessageReceivedEventHandler MessageReceived;
 
         private string buffer = string.Empty;
@@ -36,8 +22,11 @@ namespace TwitchConnectorMod
         private System.Threading.Thread inProc, outProc;
         private void StartIRC()
         {
+            Melon<TwitchConnectorMod>.Logger.Msg("StartIRC() - attempting socket connection");
             System.Net.Sockets.TcpClient sock = new System.Net.Sockets.TcpClient();
             sock.Connect(server, port);
+            Melon<TwitchConnectorMod>.Logger.Msg("StartIRC() - Finished Connect()");
+
             if (!sock.Connected)
             {
                 Melon<TwitchConnectorMod>.Logger.Msg("Failed to connect to Twitch - network error");
@@ -47,17 +36,21 @@ namespace TwitchConnectorMod
             var networkStream = sock.GetStream();
             var input = new System.IO.StreamReader(networkStream);
             var output = new System.IO.StreamWriter(networkStream);
-
-            //Send PASS & NICK.
-            output.WriteLine("PASS " + oauth);
-            output.WriteLine("NICK " + nickName.ToLower());
-            output.Flush();
             //output proc
             outProc = new System.Threading.Thread(() => IRCOutputProcedure(output));
             outProc.Start();
             //input proc
             inProc = new System.Threading.Thread(() => IRCInputProcedure(input, networkStream));
             inProc.Start();
+            Melon<TwitchConnectorMod>.Logger.Msg("StartIRC() - Sending PASS and NICK");
+
+            //Send PASS & NICK.
+            output.WriteLine("PASS " + oauth);
+            output.WriteLine("NICK " + nickName.ToLower());
+            // Adds information to incoming messages that include details like badges, whether they're a subscriber, or a mod/broadcaster, etc.
+            output.WriteLine("CAP REQ :twitch.tv/tags"); 
+            output.Flush();
+            Melon<TwitchConnectorMod>.Logger.Msg("StartIRC() - Sent PASS and NICK");
         }
         private void IRCInputProcedure(System.IO.TextReader input, System.Net.Sockets.NetworkStream networkStream)
         {
@@ -67,6 +60,10 @@ namespace TwitchConnectorMod
                     continue;
 
                 buffer = input.ReadLine();
+                if (this.logRawMessages)
+                {
+                    Melon<TwitchConnectorMod>.Logger.Msg("Twitch IRC: " + buffer);
+                }
                 
                 if (buffer.Contains("PRIVMSG #"))
                 {
@@ -86,7 +83,7 @@ namespace TwitchConnectorMod
                 if (buffer.Split(' ')[1] == "001")
                 {
                     SendCommand("JOIN #" + channelName);
-                    Melon<TwitchConnectorMod>.Logger.Msg("Twitch connected");
+                    Melon<TwitchConnectorMod>.Logger.Msg("Connected to Twitch.");
                 }
             }
         }
@@ -105,7 +102,11 @@ namespace TwitchConnectorMod
                         if (stopWatch.ElapsedMilliseconds > 1750)
                         {
                             //send msg.
-                            // Melon<TwitchConnectorMod>.Logger.Msg($"Twitch SEND: " + commandQueue.Peek());
+                            if (this.logRawMessages)
+                            {
+                                Melon<TwitchConnectorMod>.Logger.Msg($"Twitch IRC SEND: " + commandQueue.Peek());
+                            }
+                            
                             output.WriteLine(commandQueue.Peek());
                             output.Flush();
                             //remove msg from queue.
@@ -154,18 +155,11 @@ namespace TwitchConnectorMod
                     for (int i = 0; i < receivedMsgs.Count; i++)
                     {
                         MessageReceivedEventHandler handler = MessageReceived;
-                        MessageEventArgs eventArgs = new MessageEventArgs();
-                        Regex messageRegex = new Regex(@"\:(?<username>\w+)!\w+\@[\w.]+ (?<command>[A-Z]+) #(?<channel>\w+) :(?<message>[\S\s]*)");
-                        MatchCollection messageMatches = messageRegex.Matches(receivedMsgs[i]);
-
-                        eventArgs.username = messageMatches[0].Groups["username"].Value;
-                        eventArgs.channel = messageMatches[0].Groups["channel"].Value;
-                        eventArgs.message = messageMatches[0].Groups["message"].Value;
-                        eventArgs.rawMessage = receivedMsgs[i];
-
+                        ParsedTwitchMessage parsedMessage = new ParsedTwitchMessage(receivedMsgs[i]);
+                        
                         if (handler != null)
                         {
-                            handler(this, eventArgs);
+                            handler(this, parsedMessage);
                         }
                     }
                     receivedMsgs.Clear();
