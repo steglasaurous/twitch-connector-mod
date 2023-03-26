@@ -1,10 +1,6 @@
 # TwitchConnectorMod - A basic Twitch IRC implementation for Audica
 
-
-
 This mod connects to twitch chat and exposes two-way twitch chat communication to other Audica mods. 
-
-
 
 ## Prerequisites
 
@@ -43,38 +39,20 @@ This section applies to modders that want to send/receive messages from Twitch c
 Create a method to process incoming messages:
 
 ```csharp
-void OnChatMessage(Object sender, TwitchConnectorMod.TwitchIRC.MessageEventArgs eventArgs)
+void OnChatMessage(Object sender, TwitchConnectorMod.ParsedTwitchMessage eventArgs)
 {
     // process the message how you see fit.
 }
 
 ```
 
-The MessageEventArgs object has the following structure:
-
-```csharp
-        public class MessageEventArgs : EventArgs
-        {
-            public string username; // The username that sent the message
-            public string message; // The message content
-            public string channel; // The channel the message is in
-            public string rawMessage; // The raw IRC message - useful to parse lower-level twitch info if needed.
-
-            public MessageEventArgs();
-        }
-
-```
-
-
+See the ParsedTwitchMessage class for details on structure. 
 
 Register the event handler with the TwitchConnectorMod:
 
 ```csharp
-            TwitchConnectorMod.TwitchConnectorMod.AddChatMsgReceivedEventHandler(OnChatMessage);
-
+    TwitchConnectorMod.TwitchConnectorMod.AddChatMsgReceivedEventHandler(OnChatMessage);
 ```
-
-
 
 ### Sending Twitch messages
 
@@ -84,6 +62,4 @@ Call the SendMessage method:
 TwitchConnectorMod.TwitchConnectorMod.SendMessage("Greetings!");
 ```
 
-
-
-At the moment there's no parsing of twitch emotes or other features. Also note that this is a VERY basic IRC client, and does not currently use Twitch Pub/Sub or any other Twitch features.  
+Note that this is a VERY basic IRC client, and does not currently use Twitch Pub/Sub or any other Twitch features.  
