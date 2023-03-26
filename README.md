@@ -51,7 +51,7 @@ See the ParsedTwitchMessage class for details on structure.
 Register the event handler with the TwitchConnectorMod:
 
 ```csharp
-    TwitchConnectorMod.TwitchConnectorMod.AddChatMsgReceivedEventHandler(OnChatMessage);
+TwitchConnectorMod.TwitchConnectorMod.AddChatMsgReceivedEventHandler(OnChatMessage);
 ```
 
 ### Sending Twitch messages
